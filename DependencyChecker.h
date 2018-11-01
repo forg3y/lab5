@@ -80,7 +80,7 @@ class DependencyChecker {
   /* Prints out the sequence of instructions followed by the sequence of data
    * dependencies.
    */ 
-  void printDependences();
+  void printDependences(); 
 
  private:
   /* Determines if a read data dependence occurs when reg is read by the current

@@ -24,14 +24,31 @@ void DependencyChecker::addInstruction(Instruction i)
 
   switch(iType){
   case RTYPE:
-    for each (register r in Instruction i) {
-
+    if(myOpcodeTable.RSposition(i.getOpcode()) != -1){
+      cout << "In Switch- RTYPE, about to checkREAD1" << endl;
+      checkForReadDependence(i.getRS());
+    }
+    if(myOpcodeTable.RTposition(i.getOpcode()) != -1){
+      cout << "In Switch- RTYPE, about to checkREAD2" << endl;
+      checkForReadDependence(i.getRT());
+    }
+    if(myOpcodeTable.RDposition(i.getOpcode()) != -1){
+      cout << "In Switch- RTYPE, about to checkWRITE" << endl;
+      checkForWriteDependence(i.getRD());
+    }
     break;
   case ITYPE:
-    // Your code here
+    if(myOpcodeTable.RSposition(i.getOpcode()) != -1){
+      cout << "In Switch- ITYPE, about to checkREAD" << endl;
+      checkForReadDependence(i.getRS());
+    }
+    if(myOpcodeTable.RTposition(i.getOpcode()) != -1){
+      cout << "In Switch- ITYPE, about to checkWRITE" << endl;
+      checkForWriteDependence(i.getRT());
+    }
     break;
   case JTYPE:
-    // Your code here
+    // do nothing, only immediate field
     break;
   default:
     // do nothing
@@ -48,14 +65,49 @@ void DependencyChecker::checkForReadDependence(unsigned int reg)
    * the appropriate RegisterInfo entry regardless of dependence detection.
    */
 {
-  // Case: RAW
-  // Check the RegisterInfo() stuff
-  // if -1, first time accessing reg and need to update lastinstaccessed and
-  //  AccessType, don't update dependency list 
-  // if previous AccessType is read, AND current is a read, update
-  //  lastinstaccessed, do nothing else
-  // if previous AccessType is read, AND current is a write, create new
-  //  Dependence, update lastinstaccessed and AccessType, update myDependency  
+  // Find RegisterInfo() associated with reg
+  RegisterInfo r = myCurrentState.at(reg);
+  int instCount = myInstructions.size();
+
+  // Check the RegisterInfo() things like last instruction, last access
+  int lastI = r.lastInstructionToAccess;
+  AccessType lastA = r.accessType;
+
+  // if last instruction is -1, this is the first time accessing reg
+  // so we update lastInstructionToAccess and AccessType, then exit
+  if(lastA == A_UNDEFINED){
+    cout << "READDEP-> In: lastA==A_UNDEFINED" << endl;    
+    r.lastInstructionToAccess = instCount;
+    r.accessType = READ;
+    return;
+  }
+
+  // if the current access type is a read, and the previous access type was a read,
+  // update lastInstructionToAcccess, then exit
+  if (lastA == READ){
+    cout << "READDEP-> In: lastA==READ" << endl;
+    r.lastInstructionToAccess = instCount;
+    return;
+  }
+
+  //Case: RAW
+  // if the current access type is a read, and the previous access type was a write,
+  // update lastInstructionAccess, update AccessType, create a new Dependence
+  // and add to myDependences, then exit
+  if(lastA == WRITE) {
+    cout << "READDEP-> In: lastA==WRITE" << endl;
+    r.lastInstructionToAccess = instCount;
+    r.accessType = READ;
+  // Create new dependence
+    Dependence raw;
+    raw.dependenceType = RAW;        
+    raw.registerNumber = reg;
+    raw.previousInstructionNumber = lastI;
+    raw.currentInstructionNumber = instCount;
+  // Add to myDependences
+    myDependences.push_back(raw);
+    return;
+  }
 
 }
 
@@ -65,16 +117,63 @@ void DependencyChecker::checkForWriteDependence(unsigned int reg)
    * the appropriate RegisterInfo entry regardless of dependence detection.
    */
 {
-  
-  // Cases: WAW and WAR
-  // Check the RegisterInfo stuff
-  // if -1, first access, update lastinstaccessed and AccessType
-  // if previous AccessType is write, AND current is write, create new
-  //  Dependence, update lastinstaccessed (can leave AccessType alone),
-  //  and update myDependency list
-  // if previous AccessType is write, AND current is read, create new 
-  //  Dependence, update lastinst and AccessType, update myDependency list
+  // Find RegisterInfo() associated with reg
+  RegisterInfo r = myCurrentState.at(reg);
+  int instCount = myInstructions.size();
 
+  // Check the RegisterInfo() things like last instruction, last access
+  int lastI = r.lastInstructionToAccess;
+  AccessType lastA = r.accessType;
+
+  // if last instruction is -1, this is the first time accessing reg
+  // so we update lastInstructionToAccess and AccessType, then exit
+  if(lastA == A_UNDEFINED){
+    cout << "WRITEDEP-> In: lastA==A_UNDEFINED" << endl;
+    r.lastInstructionToAccess = instCount;
+    r.accessType = WRITE;
+    return;
+  }
+
+  //Case: WAR
+  // if the current access type is a write, and the previous access type was a read,
+  // update lastInstructionAccess, update AccessType, create a new Dependence
+  // and add to myDependences, then exit
+  if(lastA == READ) {
+    cout << "WRITEDEP-> In: lastA==READ" << endl;
+
+    r.lastInstructionToAccess = instCount;
+    r.accessType = WRITE;
+  // Create new dependence
+    Dependence war;
+    war.dependenceType = WAR;        
+    war.registerNumber = reg;
+    war.previousInstructionNumber = lastI;
+    war.currentInstructionNumber = instCount;
+  // Add to myDependences
+    myDependences.push_back(war);
+    return;
+  }
+
+  //Case: WAW
+  // if the current access type is a write, and the previous access type was a write,
+  // update lastInstructionAccess, update AccessType, create a new Dependence
+  // and add to myDependences, then exit
+  if(lastA == WRITE) {
+    r.lastInstructionToAccess = instCount;
+    cout << "WRITEDEP-> In: lastA==WRITE" << endl;
+
+    // no need to update accessType!
+  
+  // Create new dependence
+    Dependence waw;
+    waw.dependenceType = WAW;        
+    waw.registerNumber = reg;
+    waw.previousInstructionNumber = lastI;
+    waw.currentInstructionNumber = instCount;
+  // Add to myDependences
+    myDependences.push_back(waw);
+    return;
+  }
 }
 
 
