@@ -66,7 +66,13 @@ void DependencyChecker::checkForReadDependence(unsigned int reg)
    */
 {
   // Find RegisterInfo() associated with reg
-  RegisterInfo r = myCurrentState.at(reg);
+  // THIS IS THE ISSUE!!!!! WE CAN'T GET A REGISTERINFO STRUCT FROM THE MAP
+  // THIS WAY FOR SOME REASON... NEED THE CORRECT WAY TO ACCESS. something to 
+  // do with references and pointers... might need to mess around with *, &, and ->
+
+  // myCurrentState[reg] RETURNS A REFERENCE to the value we need... what do we do
+  // with that?
+  RegisterInfo r = myCurrentState[reg];
   int instCount = myInstructions.size();
 
   // Check the RegisterInfo() things like last instruction, last access
@@ -118,7 +124,7 @@ void DependencyChecker::checkForWriteDependence(unsigned int reg)
    */
 {
   // Find RegisterInfo() associated with reg
-  RegisterInfo r = myCurrentState.at(reg);
+  RegisterInfo r = myCurrentState[reg];
   int instCount = myInstructions.size();
 
   // Check the RegisterInfo() things like last instruction, last access
