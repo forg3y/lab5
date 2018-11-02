@@ -25,25 +25,20 @@ void DependencyChecker::addInstruction(Instruction i)
   switch(iType){
   case RTYPE:
     if(myOpcodeTable.RSposition(i.getOpcode()) != -1){
-      cout << "In Switch- RTYPE, about to checkREAD1" << endl;
       checkForReadDependence(i.getRS());
     }
     if(myOpcodeTable.RTposition(i.getOpcode()) != -1){
-      cout << "In Switch- RTYPE, about to checkREAD2" << endl;
       checkForReadDependence(i.getRT());
     }
     if(myOpcodeTable.RDposition(i.getOpcode()) != -1){
-      cout << "In Switch- RTYPE, about to checkWRITE" << endl;
       checkForWriteDependence(i.getRD());
     }
     break;
   case ITYPE:
     if(myOpcodeTable.RSposition(i.getOpcode()) != -1){
-      cout << "In Switch- ITYPE, about to checkREAD" << endl;
       checkForReadDependence(i.getRS());
     }
     if(myOpcodeTable.RTposition(i.getOpcode()) != -1){
-      cout << "In Switch- ITYPE, about to checkWRITE" << endl;
       checkForWriteDependence(i.getRT());
     }
     break;
@@ -72,7 +67,8 @@ void DependencyChecker::checkForReadDependence(unsigned int reg)
 
   // myCurrentState[reg] RETURNS A REFERENCE to the value we need... what do we do
   // with that?
-  RegisterInfo r = myCurrentState[reg];
+  //RegisterInfo r = myCurrentState[reg];
+  RegisterInfo r = myCurrentState.find(reg)->second;
   int instCount = myInstructions.size();
 
   // Check the RegisterInfo() things like last instruction, last access
@@ -82,17 +78,17 @@ void DependencyChecker::checkForReadDependence(unsigned int reg)
   // if last instruction is -1, this is the first time accessing reg
   // so we update lastInstructionToAccess and AccessType, then exit
   if(lastA == A_UNDEFINED){
-    cout << "READDEP-> In: lastA==A_UNDEFINED" << endl;    
     r.lastInstructionToAccess = instCount;
     r.accessType = READ;
+    myCurrentState[reg] = r;
     return;
   }
 
   // if the current access type is a read, and the previous access type was a read,
   // update lastInstructionToAcccess, then exit
   if (lastA == READ){
-    cout << "READDEP-> In: lastA==READ" << endl;
     r.lastInstructionToAccess = instCount;
+    myCurrentState[reg] = r;
     return;
   }
 
@@ -101,9 +97,9 @@ void DependencyChecker::checkForReadDependence(unsigned int reg)
   // update lastInstructionAccess, update AccessType, create a new Dependence
   // and add to myDependences, then exit
   if(lastA == WRITE) {
-    cout << "READDEP-> In: lastA==WRITE" << endl;
     r.lastInstructionToAccess = instCount;
     r.accessType = READ;
+    myCurrentState[reg] = r;  
   // Create new dependence
     Dependence raw;
     raw.dependenceType = RAW;        
@@ -134,9 +130,9 @@ void DependencyChecker::checkForWriteDependence(unsigned int reg)
   // if last instruction is -1, this is the first time accessing reg
   // so we update lastInstructionToAccess and AccessType, then exit
   if(lastA == A_UNDEFINED){
-    cout << "WRITEDEP-> In: lastA==A_UNDEFINED" << endl;
     r.lastInstructionToAccess = instCount;
     r.accessType = WRITE;
+    myCurrentState[reg] = r;
     return;
   }
 
@@ -145,10 +141,10 @@ void DependencyChecker::checkForWriteDependence(unsigned int reg)
   // update lastInstructionAccess, update AccessType, create a new Dependence
   // and add to myDependences, then exit
   if(lastA == READ) {
-    cout << "WRITEDEP-> In: lastA==READ" << endl;
 
     r.lastInstructionToAccess = instCount;
     r.accessType = WRITE;
+    myCurrentState[reg] = r;
   // Create new dependence
     Dependence war;
     war.dependenceType = WAR;        
@@ -166,8 +162,7 @@ void DependencyChecker::checkForWriteDependence(unsigned int reg)
   // and add to myDependences, then exit
   if(lastA == WRITE) {
     r.lastInstructionToAccess = instCount;
-    cout << "WRITEDEP-> In: lastA==WRITE" << endl;
-
+    myCurrentState[reg] = r;
     // no need to update accessType!
   
   // Create new dependence
